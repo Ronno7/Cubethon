@@ -1,10 +1,30 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cubethon
 {
-    // Episodes 2, 3 and 8: forward force, steering, and falling off the road.
+    public abstract class MovementCommand
+    {
+        public abstract void Execute(PlayerMovement player);
+    }
+
+    public sealed class MoveCommand : MovementCommand
+    {
+        private readonly float steering;
+
+        public MoveCommand(float steering)
+        {
+            this.steering = steering;
+        }
+
+        public override void Execute(PlayerMovement player)
+        {
+            player.ApplyMovement(steering);
+        }
+    }
+
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class PlayerMovement : MonoBehaviour
+    public class PlayerMovement : MonoBehaviour
     {
         public Rigidbody rb;
         public GameManager gameManager;
@@ -12,40 +32,110 @@ namespace Cubethon
         public float sidewaysForce = 60f;
         public float fallHeight = -2f;
 
-        private float steering;
+        public bool IsReplaying { get; private set; }
+        public bool HasRecording => commands.Count > 0;
+
+        private readonly List<MovementCommand> commands =
+            new List<MovementCommand>();
+
+        private Vector3 startPosition;
+        private Quaternion startRotation;
+        private Vector3 startVelocity;
+        private Vector3 startAngularVelocity;
+        private float horizontal;
+        private int replayIndex;
 
         private void Awake()
         {
-            if (rb == null) rb = GetComponent<Rigidbody>();
-            if (gameManager == null) gameManager = FindFirstObjectByType<GameManager>();
+            if (rb == null)
+                rb = GetComponent<Rigidbody>();
+
+            if (gameManager == null)
+                gameManager = FindFirstObjectByType<GameManager>();
+
+            startPosition = rb.position;
+            startRotation = rb.rotation;
+            startVelocity = rb.linearVelocity;
+            startAngularVelocity = rb.angularVelocity;
         }
 
         private void Update()
         {
-            // Read keys once per rendered frame; apply movement in the physics loop.
-            steering = GameInput.Horizontal;
+            if (!IsReplaying)
+                horizontal = GameInput.Horizontal;
         }
 
         private void FixedUpdate()
         {
-            if (gameManager != null && gameManager.HasEnded) return;
+            if (gameManager == null || gameManager.HasEnded)
+                return;
 
-            // Keep the force convention used in the tutorial (50 Hz physics).
-            rb.AddForce(0f, 0f, forwardForce * Time.fixedDeltaTime);
-            rb.AddForce(steering * sidewaysForce * Time.fixedDeltaTime, 0f, 0f,
-                ForceMode.VelocityChange);
+            if (IsReplaying)
+            {
+                if (replayIndex < commands.Count)
+                    commands[replayIndex++].Execute(this);
+                else
+                    gameManager.ReplayFinished();
 
-            if (rb.position.y < fallHeight && gameManager != null)
+                return;
+            }
+
+            if (rb.position.y < fallHeight)
+            {
                 gameManager.EndGame();
+                return;
+            }
+
+            // Record every physics step, including neutral steering.
+            MovementCommand command = new MoveCommand(horizontal);
+            commands.Add(command);
+            command.Execute(this);
+        }
+
+        public void ApplyMovement(float steering)
+        {
+            float step = Time.fixedDeltaTime;
+
+            rb.AddForce(
+                0f, 0f, forwardForce * step,
+                ForceMode.Force);
+
+            rb.AddForce(
+                steering * sidewaysForce * step, 0f, 0f,
+                ForceMode.VelocityChange);
+        }
+
+        public void BeginReplay()
+        {
+            replayIndex = 0;
+            horizontal = 0f;
+            IsReplaying = true;
+
+            rb.isKinematic = false;
+            rb.position = startPosition;
+            rb.rotation = startRotation;
+            transform.SetPositionAndRotation(startPosition, startRotation);
+
+            rb.linearVelocity = startVelocity;
+            rb.angularVelocity = startAngularVelocity;
+
+            Physics.SyncTransforms();
+            rb.WakeUp();
+            enabled = true;
         }
 
         public void StopAtFinish()
         {
             enabled = false;
-            // Unity 6 calls this linearVelocity, replacing Rigidbody.velocity.
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.isKinematic = true;
+            IsReplaying = false;
+            horizontal = 0f;
+
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
         }
     }
 }

@@ -1,19 +1,22 @@
 using UnityEngine;
 
-public class PlayerCollision : MonoBehaviour {
+namespace Cubethon
+{
+    // Episodes 5 and 8: only obstacles end the run; the road does not.
+    [RequireComponent(typeof(PlayerMovement))]
+    public sealed class PlayerCollision : MonoBehaviour
+    {
+        public PlayerMovement movement;
 
-	public PlayerMovement movement;     // A reference to our PlayerMovement script
+        private void Awake()
+        {
+            if (movement == null) movement = GetComponent<PlayerMovement>();
+        }
 
-	// This function runs when we hit another object.
-	// We get information about the collision and call it "collisionInfo".
-	void OnCollisionEnter (Collision collisionInfo)
-	{
-		// We check if the object we collided with has a tag called "Obstacle".
-		if (collisionInfo.collider.tag == "Obstacle")
-		{
-			movement.enabled = false;   // Disable the players movement.
-			FindAnyObjectByType<GameManager>().EndGame();
-		}
-	}
-
+        private void OnCollisionEnter(Collision collisionInfo)
+        {
+            if (collisionInfo.collider.CompareTag("Obstacle") && movement.gameManager != null)
+                movement.gameManager.EndGame();
+        }
+    }
 }

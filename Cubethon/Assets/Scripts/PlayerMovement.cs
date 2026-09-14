@@ -1,35 +1,51 @@
 using UnityEngine;
 
-public class PlayerMovement : MonoBehaviour {
+namespace Cubethon
+{
+    // Episodes 2, 3 and 8: forward force, steering, and falling off the road.
+    [RequireComponent(typeof(Rigidbody))]
+    public sealed class PlayerMovement : MonoBehaviour
+    {
+        public Rigidbody rb;
+        public GameManager gameManager;
+        public float forwardForce = 2000f;
+        public float sidewaysForce = 60f;
+        public float fallHeight = -2f;
 
-	// This is a reference to the Rigidbody component called "rb"
-	public Rigidbody rb;
+        private float steering;
 
-	public float forwardForce = 2000f;	// Variable that determines the forward force
-	public float sidewaysForce = 500f;  // Variable that determines the sideways force
+        private void Awake()
+        {
+            if (rb == null) rb = GetComponent<Rigidbody>();
+            if (gameManager == null) gameManager = FindFirstObjectByType<GameManager>();
+        }
 
-	// We marked this as "Fixed"Update because we
-	// are using it to mess with physics.
-	void FixedUpdate ()
-	{
-		// Add a forward force
-		rb.AddForce(0, 0, forwardForce * Time.deltaTime);
+        private void Update()
+        {
+            // Read keys once per rendered frame; apply movement in the physics loop.
+            steering = GameInput.Horizontal;
+        }
 
-		if (Input.GetKey("d"))	// If the player is pressing the "d" key
-		{
-			// Add a force to the right
-			rb.AddForce(sidewaysForce * Time.deltaTime, 0, 0, ForceMode.VelocityChange);
-		}
+        private void FixedUpdate()
+        {
+            if (gameManager != null && gameManager.HasEnded) return;
 
-		if (Input.GetKey("a"))  // If the player is pressing the "a" key
-		{
-			// Add a force to the left
-			rb.AddForce(-sidewaysForce * Time.deltaTime, 0, 0, ForceMode.VelocityChange);
-		}
+            // Keep the force convention used in the tutorial (50 Hz physics).
+            rb.AddForce(0f, 0f, forwardForce * Time.fixedDeltaTime);
+            rb.AddForce(steering * sidewaysForce * Time.fixedDeltaTime, 0f, 0f,
+                ForceMode.VelocityChange);
 
-		if (rb.position.y < -1f)
-		{
-			FindAnyObjectByType<GameManager>().EndGame();
-		}
-	}
+            if (rb.position.y < fallHeight && gameManager != null)
+                gameManager.EndGame();
+        }
+
+        public void StopAtFinish()
+        {
+            enabled = false;
+            // Unity 6 calls this linearVelocity, replacing Rigidbody.velocity.
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+    }
 }

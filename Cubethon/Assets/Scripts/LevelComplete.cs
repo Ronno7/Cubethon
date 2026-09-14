@@ -1,11 +1,18 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-public class LevelComplete : MonoBehaviour {
+namespace Cubethon
+{
+    // Episode 9: the last frame of LevelComplete.anim calls LoadNextLevel.
+    public sealed class LevelComplete : MonoBehaviour
+    {
+        public GameManager gameManager;
+        private bool loading;
 
-	public void LoadNextLevel ()
-	{
-		SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-	}
-
+        public void LoadNextLevel()
+        {
+            if (loading || gameManager == null || !gameManager.HasWon) return;
+            loading = true;
+            SceneLoader.Load(gameManager.nextSceneName);
+        }
+    }
 }

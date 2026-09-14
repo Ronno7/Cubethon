@@ -1,14 +1,23 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
-public class Score : MonoBehaviour {
+namespace Cubethon
+{
+    // Episode 7: distance along the Z axis is the score.
+    public sealed class Score : MonoBehaviour
+    {
+        public Transform player;
+        public Text scoreText;
 
-	public Transform player;
-	public TextMeshProUGUI scoreText;
-	
-	// Update is called once per frame
-	void Update () {
-		scoreText.text = player.position.z.ToString("0");
-	}
+        private void Update()
+        {
+            Refresh();
+        }
+
+        public void Refresh()
+        {
+            if (player != null && scoreText != null)
+                scoreText.text = Mathf.Max(0f, player.position.z).ToString("0");
+        }
+    }
 }

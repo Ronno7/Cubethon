@@ -1,32 +1,72 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class GameManager : MonoBehaviour {
+namespace Cubethon
+{
+    // Episodes 8 and 9: one result per run, automatic retry, and level completion.
+    public sealed class GameManager : MonoBehaviour
+    {
+        public PlayerMovement player;
+        public Score score;
+        public GameObject completeLevelUI;
+        public GameObject gameOverUI;
+        public float restartDelay = 1f;
+        public string nextSceneName = "Level02";
+        public string menuSceneName = "Menu";
 
-	bool gameHasEnded = false;
+        public bool HasEnded { get; private set; }
+        public bool HasWon { get; private set; }
 
-	public float restartDelay = 1f;
+        private void Update()
+        {
+            if (GameInput.MenuPressed) ReturnToMenu();
+            else if (GameInput.RestartPressed) Restart();
+        }
 
-	public GameObject completeLevelUI;
+        public void EndGame()
+        {
+            if (HasEnded) return;
+            HasEnded = true;
+            if (player != null) player.enabled = false;
+            FreezeScore();
+            if (gameOverUI != null) gameOverUI.SetActive(true);
+            StartCoroutine(RestartAfterDelay());
+        }
 
-	public void CompleteLevel ()
-	{
-		completeLevelUI.SetActive(true);
-	}
+        public void CompleteLevel()
+        {
+            if (HasEnded) return;
+            HasEnded = true;
+            HasWon = true;
+            if (player != null) player.StopAtFinish();
+            FreezeScore();
+            if (completeLevelUI != null) completeLevelUI.SetActive(true);
+        }
 
-	public void EndGame ()
-	{
-		if (gameHasEnded == false)
-		{
-			gameHasEnded = true;
-			Debug.Log("GAME OVER");
-			Invoke("Restart", restartDelay);
-		}
-	}
+        private void FreezeScore()
+        {
+            if (score == null) return;
+            score.Refresh();
+            score.enabled = false;
+        }
 
-	void Restart ()
-	{
-		SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-	}
+        private IEnumerator RestartAfterDelay()
+        {
+            yield return new WaitForSeconds(restartDelay);
+            Restart();
+        }
 
+        public void Restart()
+        {
+            StopAllCoroutines();
+            SceneLoader.Load(SceneManager.GetActiveScene().name);
+        }
+
+        public void ReturnToMenu()
+        {
+            StopAllCoroutines();
+            SceneLoader.Load(menuSceneName);
+        }
+    }
 }

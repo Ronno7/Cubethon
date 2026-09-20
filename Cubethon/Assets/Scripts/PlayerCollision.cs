@@ -16,7 +16,7 @@ namespace Cubethon
         private void OnCollisionEnter(Collision collisionInfo)
         {
             if (collisionInfo.collider.CompareTag("Obstacle") && movement.gameManager != null)
-                movement.gameManager.EndGame();
+                movement.gameManager.PlayerHitObstacle();
         }
     }
 }

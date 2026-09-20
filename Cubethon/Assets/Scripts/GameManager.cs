@@ -138,8 +138,28 @@ namespace Cubethon
             if (HasEnded && player.HasRecording) controls = "V: Replay | " + controls;
             if (HasEnded && HasWon) controls += " | Enter: Next level";
             float width = Mathf.Min(760f, Screen.width - 24f);
-            GUI.Box(new Rect((Screen.width - width) / 2f, (Screen.height - 100f) / 2f, width, 100f),
-                title + "\n\n" + controls, messageStyle);
+
+            messageStyle.normal.background = Texture2D.whiteTexture;
+            messageStyle.hover.background = Texture2D.whiteTexture;
+            messageStyle.normal.textColor = Color.black;
+            messageStyle.hover.textColor = Color.black;
+
+
+            Color previousColor = GUI.backgroundColor;
+            GUI.backgroundColor = HasWon
+                ? new Color(0.1f, 0.6f, 0.1f, 0.8f)  // Green: level completed
+                : new Color(0.7f, 0.1f, 0.1f, 0.8f); // Red: otherwise
+
+            GUI.Box(
+                new Rect(
+                    (Screen.width - width) / 2f,
+                    (Screen.height - 100f) / 2f,
+                    width,
+                    100f),
+                title + "\n\n" + controls,
+                messageStyle);
+
+            GUI.backgroundColor = previousColor;
         }
     }
 }

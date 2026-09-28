@@ -30,10 +30,11 @@ namespace Cubethon
         private Vector3 startPosition, startVelocity, startAngularVelocity;
         private Quaternion startRotation;
         private float horizontal;
-        private int replayIndex;
+        private IMovementStrategy movementStrategy;
 
         private void Awake()
         {
+            movementStrategy = new LiveMovementStrategy(commands);
             if (rb == null) rb = GetComponent<Rigidbody>();
             if (gameManager == null) gameManager = FindFirstObjectByType<GameManager>();
             startPosition = rb.position;
@@ -50,20 +51,16 @@ namespace Cubethon
         private void FixedUpdate()
         {
             if (gameManager == null || gameManager.HasEnded) return;
-            if (IsReplaying)
-            {
-                if (replayIndex < commands.Count) commands[replayIndex++].Execute(this);
-                else gameManager.ReplayFinished();
-                return;
-            }
-            if (rb.position.y < fallHeight)
+            if (!IsReplaying && rb.position.y < fallHeight)
             {
                 gameManager.EndGame();
                 return;
             }
-            MovementCommand command = new MoveCommand(horizontal);
-            commands.Add(command);
-            command.Execute(this);
+            // Context: both modes use the same command execution path.
+            if (movementStrategy.TryGetCommand(horizontal, out MovementCommand command))
+                command.Execute(this);
+            else
+                gameManager.ReplayFinished();
         }
 
         public void ApplyMovement(float steering)
@@ -75,7 +72,8 @@ namespace Cubethon
 
         public void BeginReplay()
         {
-            replayIndex = 0;
+            // A fresh strategy starts every replay at the first recorded command.
+            movementStrategy = new ReplayMovementStrategy(commands);
             horizontal = 0f;
             IsReplaying = true;
             rb.isKinematic = false;

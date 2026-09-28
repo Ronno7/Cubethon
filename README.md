@@ -2,13 +2,13 @@
 
 A small Unity obstacle-dodging game **based on Brackeys' "How to make a Video Game" series**, expanded with replays, design patterns, and a few quality-of-life features.
 
-**[Play in your browser](https://ronno7.github.io/Cubethon/)**
+**[Play here](https://ronno7.github.io/Cubethon/)**
 
 Dodge obstacles, stay on the road, and finish all three levels. The tutorial provided the movement, camera, scoring, and menu/level foundation.
 
-## What we added
+## What was added
 
-| Feature | How we built it |
+| Feature | How it was built |
 | --- | --- |
 | Replay your attempt | **Command pattern:** record steering commands, reset the player, then execute them again. |
 | Switch between playing and replaying | **Strategy pattern:** live input and recorded input supply commands through the same interface. |
